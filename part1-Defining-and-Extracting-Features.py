@@ -36,12 +36,6 @@ class FeatureStatisticsClass:
         for i in range(0, 8):
             self.array_count_dicts.append(OrderedDict())
 
-
-        # self.words_tags_count_dict_100 = OrderedDict()
-        # # ---Add more count dictionaries here---
-        # self.words_tags_count_dict_101 = OrderedDict()
-        # self.words_tags_count_dict_102 = OrderedDict()
-
     def get_word_tag_pair_count_100(self, file_path):
         """
             Extract out of text all word/tag pairs
@@ -60,11 +54,11 @@ class FeatureStatisticsClass:
                         self.array_count_dicts[0][(cur_word, cur_tag)] += 1
 
     # --- ADD YOURE CODE BELOW --- #
-    def get_word_tag_pair_count_101(self, file_path): ## currently checks only if word ends with "ing"
+    def get_word_tag_pair_count_101(self, file_path):
         """
-            Extract out of text all word/tag pairs
+            Extract out of text all suffixes with length 3/tag pairs
             :param file_path: full path of the file to read
-                return all word/tag pairs with index of appearance
+                return all suffixes with length 3/tag pairs with index of appearance
         """
         with open(file_path) as f:
             for line in f:
@@ -73,17 +67,17 @@ class FeatureStatisticsClass:
                 for word_idx in range(len(splited_words)):
                     cur_word, cur_tag = splited_words[word_idx].split('_')
                     if len(cur_word) > 3:
-                        if cur_word[-3:] == "ing":
-                            if (cur_word, cur_tag) not in self.array_count_dicts[1]:
-                                self.array_count_dicts[1][(cur_word, cur_tag)] = 1
-                            else:
-                                self.array_count_dicts[1][(cur_word, cur_tag)] += 1
+                        three_letter_suffix = cur_word[-3:]
+                        if (three_letter_suffix, cur_tag) not in self.array_count_dicts[1]:
+                            self.array_count_dicts[1][(three_letter_suffix, cur_tag)] = 1
+                        else:
+                            self.array_count_dicts[1][(three_letter_suffix, cur_tag)] += 1
 
     def get_word_tag_pair_count_102(self, file_path): ## currently checks only if word begins with "pre"
         """
-            Extract out of text all word/tag pairs
+            Extract out of text all prefixes with length 3/tag pairs
             :param file_path: full path of the file to read
-                return all word/tag pairs with index of appearance
+                return all prefixes with length 3/tag pairs with index of appearance
         """
         with open(file_path) as f:
             for line in f:
@@ -92,11 +86,68 @@ class FeatureStatisticsClass:
                 for word_idx in range(len(splited_words)):
                     cur_word, cur_tag = splited_words[word_idx].split('_')
                     if len(cur_word) > 3:
-                        if cur_word[0:3] == "pre":
-                            if (cur_word, cur_tag) not in self.array_count_dicts[2]:
-                                self.array_count_dicts[2][(cur_word, cur_tag)] = 1
-                            else:
-                                self.array_count_dicts[2][(cur_word, cur_tag)] += 1
+                        three_letter_prefix = cur_word[0:3]
+                        if (three_letter_prefix, cur_tag) not in self.array_count_dicts[2]:
+                            self.array_count_dicts[2][(three_letter_prefix, cur_tag)] = 1
+                        else:
+                            self.array_count_dicts[2][(three_letter_prefix, cur_tag)] += 1
+
+    def get_tag_threesome_count_103(self, file_path):
+        """
+            Extract out of threesomes of consecutive tags
+            :param file_path: full path of the file to read
+                return all threesomes of consecutive tags with index of appearance
+        """
+        with open(file_path) as f:
+            for line in f:
+                splited_words = line.split(' ')
+                del splited_words[-1]
+                for word_idx in range(2, len(splited_words)): ## pay attention: starting from idx 2 due to the need of having two previous tags
+                    ppword, pptag = splited_words[word_idx - 2].split('_')
+                    pword, ptag = splited_words[word_idx - 1].split('_')
+                    cword, ctag = splited_words[word_idx].split('_')
+                    three_consecutive_tags = (pptag, ptag, ctag)
+                    if three_consecutive_tags not in self.array_count_dicts[3]:
+                        self.array_count_dicts[3][three_consecutive_tags] = 1
+                    else:
+                        self.array_count_dicts[3][three_consecutive_tags] += 1
+
+
+    def get_tag_couples_count_104(self, file_path):
+        """
+            Extract out of couples of consecutive tags
+            :param file_path: full path of the file to read
+                return all couples of consecutive tags with index of appearance
+        """
+        with open(file_path) as f:
+            for line in f:
+                splited_words = line.split(' ')
+                del splited_words[-1]
+                for word_idx in range(1, len(splited_words)): ## pay attention: starting from idx 1 due to the need of having one previous tag
+                    pword, ptag = splited_words[word_idx - 1].split('_')
+                    cword, ctag = splited_words[word_idx].split('_')
+                    couple_consecutive_tags = (ptag, ctag)
+                    if couple_consecutive_tags not in self.array_count_dicts[4]:
+                        self.array_count_dicts[4][couple_consecutive_tags] = 1
+                    else:
+                        self.array_count_dicts[4][couple_consecutive_tags] += 1
+
+    def get_tag_count_105(self, file_path):
+        """
+            Extract out of text all tags
+            :param file_path: full path of the file to read
+                return all tags with index of appearance
+        """
+        with open(file_path) as f:
+            for line in f:
+                splited_words = line.split(' ')
+                del splited_words[-1]
+                for word_idx in range(0, len(splited_words)):
+                    cword, ctag = splited_words[word_idx].split('_')
+                    if ctag not in self.array_count_dicts[5]:
+                        self.array_count_dicts[5][ctag] = 1
+                    else:
+                        self.array_count_dicts[5][ctag] += 1
 
 """### Indexing features 
 After getting feature statistics, each feature is given an index to represent it. We include only features that appear more times in text than the lower bound - 'threshold'
@@ -118,14 +169,16 @@ class Feature2idClass:
             self.array_of_words_tags_dicts.append(OrderedDict())
 
 
-    def get_word_tag_pairs_100_to_102(self, file_path):
+    def get_id_for_features_over_threshold(self, file_path):
         """
             Extract out of text all word/tag pairs
             :param file_path: full path of the file to read
                 return all word/tag pairs with index of appearance
         """
-        with open(file_path) as f:
-            for i in range(0, 3):
+        num_features = 6
+        for i in range(0, num_features):
+            with open(file_path) as f:
+
                 for line in f:
                     splited_words = line.split(' ')
                     del splited_words[-1]
@@ -133,57 +186,76 @@ class Feature2idClass:
                     for word_idx in range(len(splited_words)):
                         cur_word, cur_tag = splited_words[word_idx].split('_')
 
-                        if ((cur_word, cur_tag) not in self.array_of_words_tags_dicts[i]) \
-                            and (self.feature_statistics.array_count_dicts[i][(cur_word, cur_tag)] >= self.threshold):
-                                    #and (self.feature_statistics.words_tags_count_dict_100[(cur_word, cur_tag)] >= self.threshold):
-                            self.array_of_words_tags_dicts[i][(cur_word, cur_tag)] = self.featureIDX
-                            self.featureIDX += 1
-                            self.n_tag_pairs += 1
+                        if i == 0:
+                            if ((cur_word, cur_tag) not in self.array_of_words_tags_dicts[i]) \
+                             and (self.feature_statistics.array_count_dicts[i][(cur_word, cur_tag)] >= self.threshold):
+                                self.array_of_words_tags_dicts[i][(cur_word, cur_tag)] = self.featureIDX
+                                self.featureIDX += 1
+                                self.n_tag_pairs += 1
+
+                        elif i == 1:
+                            if len(cur_word) > 3:
+                                three_letter_suffix = cur_word[-3:]
+
+                                if ((three_letter_suffix, cur_tag) not in self.array_of_words_tags_dicts[i]) \
+                                 and (self.feature_statistics.array_count_dicts[i][(three_letter_suffix, cur_tag)] >= self.threshold):
+                                    self.array_of_words_tags_dicts[i][(three_letter_suffix, cur_tag)] = self.featureIDX
+                                    self.featureIDX += 1
+                                    self.n_tag_pairs += 1
+
+                        elif i == 2:
+                            if len(cur_word) > 3:
+                                three_letter_prefix = cur_word[0:3]
+                                if ((three_letter_prefix, cur_tag) not in self.array_of_words_tags_dicts[i]) \
+                                        and (self.feature_statistics.array_count_dicts[i][
+                                                 (three_letter_prefix, cur_tag)] >= self.threshold):
+                                    self.array_of_words_tags_dicts[i][(three_letter_prefix, cur_tag)] = self.featureIDX
+                                    self.featureIDX += 1
+                                    self.n_tag_pairs += 1
+
+                        elif i == 3:
+                            if word_idx >= 2:
+                                ppword, pptag = splited_words[word_idx - 2].split('_')
+                                pword, ptag = splited_words[word_idx - 1].split('_')
+                                cword, ctag = splited_words[word_idx].split('_')
+                                three_consecutive_tags = (pptag, ptag, ctag)
+
+                                if (three_consecutive_tags not in self.array_of_words_tags_dicts[i]) \
+                                        and (self.feature_statistics.array_count_dicts[i][
+                                                 three_consecutive_tags] >= self.threshold):
+                                    self.array_of_words_tags_dicts[i][three_consecutive_tags] = self.featureIDX
+                                    self.featureIDX += 1
+                                    self.n_tag_pairs += 1
+
+                        elif i == 4:
+                            if word_idx >= 1:
+                                pword, ptag = splited_words[word_idx - 1].split('_')
+                                cword, ctag = splited_words[word_idx].split('_')
+                                couple_consecutive_tags = (ptag, ctag)
+
+                                if (couple_consecutive_tags not in self.array_of_words_tags_dicts[i]) \
+                                        and (self.feature_statistics.array_count_dicts[i][
+                                                 couple_consecutive_tags] >= self.threshold):
+                                    self.array_of_words_tags_dicts[i][couple_consecutive_tags] = self.featureIDX
+                                    self.featureIDX += 1
+                                    self.n_tag_pairs += 1
+
+                        elif i == 5:
+                                cword, ctag = splited_words[word_idx].split('_')
+
+                                if (ctag not in self.array_of_words_tags_dicts[i]) \
+                                        and (self.feature_statistics.array_count_dicts[i][ctag] >= self.threshold):
+                                    self.array_of_words_tags_dicts[i][ctag] = self.featureIDX
+                                    self.featureIDX += 1
+                                    self.n_tag_pairs += 1
+                        else:
+                            pass
+
         self.n_total_features += self.n_tag_pairs
 
     # --- ADD YOURE CODE BELOW --- #
 
-    # def get_word_tag_pairs_101(self, file_path):
-    #     """
-    #         Extract out of text all word/tag pairs
-    #         :param file_path: full path of the file to read
-    #             return all word/tag pairs with index of appearance
-    #     """
-    #     with open(file_path) as f:
-    #         for line in f:
-    #             splited_words = line.split(' ')
-    #             del splited_words[-1]
-    #
-    #             for word_idx in range(len(splited_words)):
-    #                 cur_word, cur_tag = splited_words[word_idx].split('_')
-    #                 if ((cur_word, cur_tag) not in self.words_tags_dict) \
-    #                         and (self.feature_statistics.words_tags_count_dict_101[(cur_word, cur_tag)] >= self.threshold):
-    #                     self.words_tags_dict[(cur_word, cur_tag)] = self.featureIDX
-    #                     self.featureIDX += 1
-    #                     self.n_tag_pairs += 1
-    #     self.n_total_features += self.n_tag_pairs
-    #
-    #
-    #
-    # def get_word_tag_pairs_102(self, file_path):
-    #     """
-    #         Extract out of text all word/tag pairs
-    #         :param file_path: full path of the file to read
-    #             return all word/tag pairs with index of appearance
-    #     """
-    #     with open(file_path) as f:
-    #         for line in f:
-    #             splited_words = line.split(' ')
-    #             del splited_words[-1]
-    #
-    #             for word_idx in range(len(splited_words)):
-    #                 cur_word, cur_tag = splited_words[word_idx].split('_')
-    #                 if ((cur_word, cur_tag) not in self.words_tags_dict) \
-    #                         and (self.feature_statistics.words_tags_count_dict_101[(cur_word, cur_tag)] >= self.threshold):
-    #                     self.words_tags_dict[(cur_word, cur_tag)] = self.featureIDX
-    #                     self.featureIDX += 1
-    #                     self.n_tag_pairs += 1
-    #     self.n_total_features += self.n_tag_pairs
+
 
 
 """### Representing input data with features 
@@ -211,20 +283,41 @@ def represent_input_with_features(history, Feature2idClass, tag = None):
     if tag:
         ctag = tag
     features = []
-    words_tags_dict_100 = Feature2idClass.words_tags_dict_100 = Feature2idClass.array_of_words_tags_dicts[0]
-    words_tags_dict_101 = Feature2idClass.words_tags_dict_101 = Feature2idClass.array_of_words_tags_dicts[1]
-    words_tags_dict_102 = Feature2idClass.words_tags_dict_101 = Feature2idClass.array_of_words_tags_dicts[2]
+    words_tags_dict_100 = Feature2idClass.array_of_words_tags_dicts[0]
+    words_tags_dict_101 = Feature2idClass.array_of_words_tags_dicts[1]
+    words_tags_dict_102 = Feature2idClass.array_of_words_tags_dicts[2]
+    threesome_tags_dict_103 = Feature2idClass.array_of_words_tags_dicts[3]
+    couple_tags_dict_104 = Feature2idClass.array_of_words_tags_dicts[4]
+    tags_dict_105 = Feature2idClass.array_of_words_tags_dicts[5]
 
-
-    if (cword, ctag) in words_tags_dict_100: #words_tags_dict_100
+    ## 100 ##
+    if (cword, ctag) in words_tags_dict_100:
         features.append(words_tags_dict_100[(cword, ctag)])
 
-    # --- CHECK APEARANCE OF MORE FEATURES BELOW --- #
-    if (cword, ctag) in words_tags_dict_101:
-        features.append(words_tags_dict_101[(cword, ctag)])
+    ## 101 ##
+    three_letter_suffix = cword[-3:]
+    if (three_letter_suffix, ctag) in words_tags_dict_101:
+        features.append(words_tags_dict_101[(three_letter_suffix, ctag)])
 
-    if (cword, ctag) in words_tags_dict_102:
-        features.append(words_tags_dict_102[(cword, ctag)])
+    ## 102 ##
+    three_letter_prefix = cword[0:3]
+    if (three_letter_prefix, ctag) in words_tags_dict_102:
+        features.append(words_tags_dict_102[(three_letter_prefix, ctag)])
+
+    ## 103 ##
+    three_consecutive_tags = (pptag, ptag, ctag)
+    if three_consecutive_tags in threesome_tags_dict_103:
+        features.append(threesome_tags_dict_103[three_consecutive_tags])
+
+    ## 104 ##
+    couple_consecutive_tags = (ptag, ctag)
+    if couple_consecutive_tags in couple_tags_dict_104:
+        features.append(couple_tags_dict_104[couple_consecutive_tags])
+
+    ## 105 ##
+    if ctag in tags_dict_105:
+        features.append(tags_dict_105[ctag])
+
     return features
 
 
@@ -234,10 +327,13 @@ def main():
     my_feature_statistics_class.get_word_tag_pair_count_100(file_path)
     my_feature_statistics_class.get_word_tag_pair_count_101(file_path)
     my_feature_statistics_class.get_word_tag_pair_count_102(file_path)
+    my_feature_statistics_class.get_tag_threesome_count_103(file_path)
+    my_feature_statistics_class.get_tag_couples_count_104(file_path)
+    my_feature_statistics_class.get_tag_count_105(file_path)
 
     num_occurrences_threshold = 1
     my_feature2id_class = Feature2idClass(my_feature_statistics_class, num_occurrences_threshold)
-    my_feature2id_class.get_word_tag_pairs_100_to_102(file_path)
+    my_feature2id_class.get_id_for_features_over_threshold(file_path)
 
     tag = "VBD"
 
