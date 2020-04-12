@@ -1,49 +1,70 @@
-"""## Part 2 - Optimization
-
-### How to speed up optimization
-Gradient descent is an iterative optimization method. The log-linear objective presented in equation (1) is a convex problem, which guaranties a convergence for gradient descent iterations (when choosing an appropriate step size). However, in order to converge, many iterations must be performed. Therefore, it is importent to (1) speed up each iteration and to (2) decrease the number of iterations.
-
-
-#### Decrease the number of iterations
-Notice that by increasing $\lambda$ we can force the algorithm to search for a solution in a smaller search space - which will reduce the number of iterations. However, this is a tredoff, because it will also damage train-set accuracy (Notice that we don't strive to achieve 100% accuracy on the training set, as sometimes by reducing training accuracy we achieve improvement in developement set accuracy).
+import numpy as np
+import pickle
+from scipy import sparse
+from scipy.optimize import fmin_l_bfgs_b
 
 
-#### Decrease iteration duration
-Denote the GD update as:
+def feature_list_to_sparse_matrix(feature_list, return_dims=True):
+    num_h = len(feature_list)
+    num_t = len(feature_list[0])
+    row = []
+    col = []
+    for h in range(num_h):
+        for t in range(num_t):
+            col_ind = feature_list[h][t]
+            row_ind = h * num_t + t
+            row.extend(len(col_ind) * [row_ind])
+            col += col_ind
+    mat = sparse.csr_matrix((np.ones(len(row)), (row, col)))
+    if return_dims:
+        num_f = mat.shape[1]
+        return mat, num_h, num_t, num_f
 
-In this excersice we are using `fmin_l_bfgs_b`, which is imported from `scipy.optimize`. This is an iterative optimization function which is similar to GD. The function receives 3 arguments:
 
-
-1.   **func** - a function that clculates the objective and its gradient each iteration.
-2.   **x0** - initialize values of the model weights.
-3.   **args** - the arguments which 'func' is expecting, except for the first argument - which is the model weights.
-4.   **maxiter** (optional) - specify a hard limit for number of iterations. (int)
-5.   **iprint**  (optional) - specify the print interval (int) 0 < iprint < 99
-
-
-
-Think of ways to efficiently calculate eqautions (1) and (2) according to your features implementation. Furthermore, think which parts must be computed in each iteration, and whether others can be computed once.
-"""
-
-
-def calc_objective_per_iter(w_i, arg_1, arg_2, ...):
+def calc_objective_per_iter(w_i, feature_mat: sparse.csr_matrix, empirical_counts, num_h, true_tags, alpha):
     """
         Calculate max entropy likelihood for an iterative optimization method
+        :param alpha: the regularization coefficient
+        :param num_h: number of histories in the training data
+        :param empirical_counts: pre computed empirical_counts
         :param w_i: weights vector in iteration i
-        :param arg_i: arguments passed to this function, such as lambda hyperparameter for regularization
+
 
             The function returns the Max Entropy likelihood (objective) and the objective gradient
     """
-
-    ## Calculate the terms required for the likelihood and gradient calculations
-    ## Try implementing it as efficient as possible, as this is repeated for each iteration of optimization.
-
-    likelihood = linear_term - normalization_term - regularization
-    grad = empirical_counts - expected_counts - regularization_grad
-
+    scores = feature_mat.dot(w_i)
+    scores = scores.reshape((num_h, -1))
+    exp_scores = np.exp(scores)
+    sum_exp = np.sum(exp_scores, axis=1)
+    probs = exp_scores/sum_exp.reshape((num_h, 1))
+    expected_counts = feature_mat.transpose().dot(probs.reshape(-1)).reshape(-1)
+    likelihood = np.sum(scores[np.arange(num_h), true_tags] - np.log(sum_exp) - (alpha/2) * (w_i**2))
+    grad = empirical_counts - expected_counts - alpha*w_i
     return (-1) * likelihood, (-1) * grad
 
 
+def file_to_features(path):
+    pass
+
+
+def train_from_file(path, alpha, weights_path):
+    feature_list, true_tags = file_to_features(path)
+    feature_mat, num_h, num_t, num_f = feature_list_to_sparse_matrix(feature_list)
+    true_tags_history = num_t * np.arange(num_h) + true_tags
+    empirical_counts = np.asarray(feature_mat[true_tags_history].sum(axis=0)).reshape(-1)
+    args = (feature_mat, empirical_counts, num_h, true_tags, alpha)
+    w_0 = np.zeros(num_f, dtype=np.float32)
+    optimal_params = fmin_l_bfgs_b(func=calc_objective_per_iter, x0=w_0, args=args, maxiter=1000, iprint=50)
+    weights = optimal_params[0]
+    if weights_path is not None:
+        with open(weights_path, 'wb') as f:
+            pickle.dump(optimal_params, f)
+    return weights
+
+
+
+
+'''
 """Now lets run the code untill we get the optimized weights."""
 
 from scipy.optimize import fmin_l_bfgs_b
@@ -75,4 +96,5 @@ with open(weights_path, 'wb') as f:
 # pre_trained_weights = optimal_params[0]                             #
 #                                                                     #
 #######################################################################
+'''
 
