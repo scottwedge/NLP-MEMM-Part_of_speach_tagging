@@ -107,7 +107,7 @@ optimal_params = fmin_l_bfgs_b(func=calc_objective_per_iter, x0=w_0, args=args, 
 weights = optimal_params[0]
 
 # Now you can save weights using pickle.dump() - 'weights_path' specifies where the weight file will be saved.
-# IMPORTANT - we expect to recieve weights in 'pickle' format, don't use any other format!!
+# IMPORTANT - we expect to receive weights in 'pickle' format, don't use any other format!!
 weights_path = 'your_path_to_weights_dir/trained_weights_data_i.pkl'  # i identifies which dataset this is trained on
 with open(weights_path, 'wb') as f:
     pickle.dump(optimal_params, f)
