@@ -464,7 +464,8 @@ def main():
 
     history_quadruple_table = history_quadruples_to_indices(file_path)
     all_word_tag_list = my_feature_statistics_class.array_count_dicts[0].keys()
-    tags_list = set([x[1] for x in all_word_tag_list])  # unique appearance of all possible tags
+    correct_tags_ordered = [x[1] for x in all_word_tag_list]
+    tags_list = set(correct_tags_ordered)  # unique appearance of all possible tags
 
     history_tags_features_table_for_training = generate_table_of_history_tags_features_for_training(my_feature2id_class, history_quadruple_table, tags_list)
 
