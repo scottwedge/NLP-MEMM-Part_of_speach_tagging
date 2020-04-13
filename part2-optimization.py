@@ -16,6 +16,8 @@ def feature_list_to_sparse_matrix(feature_list, return_dims=True):
             row_ind = h * num_t + t
             row.extend(len(col_ind) * [row_ind])
             col += col_ind
+    row = np.array(row)
+    col = np.array(col)
     mat = sparse.csr_matrix((np.ones(len(row)), (row, col)))
     if return_dims:
         num_f = mat.shape[1]
