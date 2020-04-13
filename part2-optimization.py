@@ -2,6 +2,7 @@ import numpy as np
 import pickle
 from scipy import sparse
 from scipy.optimize import fmin_l_bfgs_b
+import time
 
 
 def feature_list_to_sparse_matrix(feature_list, return_dims=True):
@@ -62,6 +63,26 @@ def train_from_file(path, alpha, weights_path):
     return weights
 
 
+def train_from_list(feature_list, true_tags, alpha, weights_path, time_run=False):
+    if time_run:
+        t1 = time.time()
+    feature_mat, num_h, num_t, num_f = feature_list_to_sparse_matrix(feature_list)
+    if time_run:
+        t2 = time.time()
+        print('Part 2 format conversion time:', t2 - t1)
+    true_tags_history = num_t * np.arange(num_h) + true_tags
+    empirical_counts = np.asarray(feature_mat[true_tags_history].sum(axis=0)).reshape(-1)
+    args = (feature_mat, empirical_counts, num_h, true_tags, alpha)
+    w_0 = np.zeros(num_f, dtype=np.float32)
+    optimal_params = fmin_l_bfgs_b(func=calc_objective_per_iter, x0=w_0, args=args, maxiter=1000, iprint=50)
+    weights = optimal_params[0]
+    if time_run:
+        t3 = time.time()
+        print('Total part 2 run time:', t3 - t1)
+    if weights_path is not None:
+        with open(weights_path, 'wb') as f:
+            pickle.dump(optimal_params, f)
+    return weights
 
 
 '''
