@@ -1,5 +1,7 @@
 import os
 from collections import OrderedDict
+import numpy as np
+import time
 
 """
 *   Pre-training:
@@ -322,7 +324,7 @@ We define a tuple which hold all relevant knowledge about the current word, i.e.
 """
 
 
-def represent_input_with_features(history, Feature2idClass, tag = None):
+def represent_input_with_features(history, Feature2idClass, ctag_input = None, pptag_input = None, ptag_input = None):
     """
         Extract feature vector in per a given history
         :param history: touple{ppword, pptag, pword, ptag, cword, ctag, nword, ntag}
@@ -337,8 +339,14 @@ def represent_input_with_features(history, Feature2idClass, tag = None):
     ctag = history[5]
     nword = history[6]
     ntag = history[7]
-    if tag:
-        ctag = tag
+
+    if pptag_input:
+        pptag = pptag_input
+    if ptag_input:
+        ptag = ptag_input
+    if ctag_input:
+        ctag = ctag_input
+
     features = []
     words_tags_dict_100 = Feature2idClass.array_of_words_tags_dicts[0]
     words_tags_dict_101 = Feature2idClass.array_of_words_tags_dicts[1]
@@ -388,8 +396,59 @@ def represent_input_with_features(history, Feature2idClass, tag = None):
     return features
 
 
+def history_quadruples_to_indices(file_path):
+    history_table = []
+    with open(file_path) as f:
+        for line in f:
+            splited_words = line.split(' ')
+            del splited_words[-1]
+            for word_idx in range(2, len(splited_words)-1):
+                ppword, pptag = splited_words[word_idx - 2].split('_')
+                pword, ptag = splited_words[word_idx - 1].split('_')
+                cword, ctag = splited_words[word_idx].split('_')
+                nword, ntag = splited_words[word_idx + 1].split('_')
+                curr_quadruple_history = (ppword, pptag, pword, ptag, cword, ctag, nword, ntag)
+                history_table.append(curr_quadruple_history)
+
+    return history_table
+
+
+def generate_table_of_history_tags_features_for_training(my_feature2id_class, history_quadruple_table, tags_list):
+    num_history_quadruple_elements = len(history_quadruple_table)
+    amount_of_tags = len(tags_list)
+    history_tags_features_table_for_training = np.empty((num_history_quadruple_elements, amount_of_tags), dtype=object)
+
+    matrix_size = num_history_quadruple_elements * amount_of_tags
+    element_counter = 0
+    for history_index, curr_history_quadruple in enumerate(history_quadruple_table):
+        for ctag_index, ctag in enumerate(tags_list):
+            curr_feature_vector = represent_input_with_features(curr_history_quadruple, my_feature2id_class, ctag)
+            history_tags_features_table_for_training[history_index, ctag_index] = curr_feature_vector
+            element_counter += 1
+            if element_counter % (round(matrix_size / 10)) == 0:
+                print(f'{round(100 * element_counter / matrix_size)}% finished')
+
+    return history_tags_features_table_for_training
+
+
+def generate_table_of_history_tags_features_for_test(my_feature2id_class, history_quadruple_table, tags_list):
+    num_history_quadruple_elements = len(history_quadruple_table)
+    amount_of_tags = len(tags_list)
+    history_tags_features_table = np.empty((num_history_quadruple_elements, amount_of_tags), dtype=object)
+    for history_index, curr_history_quadruple in enumerate(history_quadruple_table):
+        for pptag_index, pptag in enumerate(tags_list):
+            for ptag_index, ptag in enumerate(tags_list):
+                for ctag_index, ctag in enumerate(tags_list):
+                    curr_feature_vector = represent_input_with_features(curr_history_quadruple, my_feature2id_class,pptag,ptag,ctag)
+                    history_tags_features_table[history_index, pptag_index, ptag_index, ctag_index] = curr_feature_vector
+
+
 def main():
+    start_time_section_1 = time.time()
+
+    num_occurrences_threshold = 5
     file_path = os.path.join("data", "train2.wtag")
+
     my_feature_statistics_class = FeatureStatisticsClass()
     my_feature_statistics_class.get_word_tag_pair_count_100(file_path)
     my_feature_statistics_class.get_word_tag_pair_count_101(file_path)
@@ -400,23 +459,22 @@ def main():
     my_feature_statistics_class.get_prev_word_curr_tag_pair_count_106(file_path)
     my_feature_statistics_class.get_next_word_curr_tag_pair_count_107(file_path)
 
-    num_occurrences_threshold = 1
     my_feature2id_class = Feature2idClass(my_feature_statistics_class, num_occurrences_threshold)
     my_feature2id_class.get_id_for_features_over_threshold(file_path)
 
-    tag = "VBD"
+    history_quadruple_table = history_quadruples_to_indices(file_path)
+    all_word_tag_list = my_feature_statistics_class.array_count_dicts[0].keys()
+    tags_list = set([x[1] for x in all_word_tag_list])  # unique appearance of all possible tags
 
-    with open(file_path) as f:
-        lines = f.readlines()
-        line = lines[54]
-        line_split = line.split(' ')
-        curr_history = []
-        for idx in range(0, 4):
-            cur_word, cur_tag = line_split[idx].split('_')
-            curr_history.append(cur_word)
-            curr_history.append(cur_tag)
-        #param history: touple{ppword, pptag, pword, ptag, cword, ctag, nword, ntag}
-        features = represent_input_with_features(curr_history, my_feature2id_class)
+    history_tags_features_table_for_training = generate_table_of_history_tags_features_for_training(my_feature2id_class, history_quadruple_table, tags_list)
+
+
+
+    end_time_section_1 = time.time()
+    total_time = end_time_section_1 - start_time_section_1
+    print(f'total time for section 1 is: {total_time} seconds')
+
+
     pass
 
 
