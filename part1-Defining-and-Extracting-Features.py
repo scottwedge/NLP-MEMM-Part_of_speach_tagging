@@ -75,7 +75,7 @@ class FeatureStatisticsClass:
                         else:
                             self.array_count_dicts[1][(three_letter_suffix, cur_tag)] += 1
 
-    def get_word_tag_pair_count_102(self, file_path): ## currently checks only if word begins with "pre"
+    def get_word_tag_pair_count_102(self, file_path):  # currently checks only if word begins with "pre"
         """
             Extract out of text all prefixes with length 3/tag pairs
             :param file_path: full path of the file to read
@@ -104,7 +104,7 @@ class FeatureStatisticsClass:
             for line in f:
                 splited_words = line.split(' ')
                 del splited_words[-1]
-                for word_idx in range(2, len(splited_words)): ## pay attention: starting from idx 2 due to the need of having two previous tags
+                for word_idx in range(2, len(splited_words)):  # pay attention: starting from idx 2 due to the need of having two previous tags
                     ppword, pptag = splited_words[word_idx - 2].split('_')
                     pword, ptag = splited_words[word_idx - 1].split('_')
                     cword, ctag = splited_words[word_idx].split('_')
@@ -113,7 +113,6 @@ class FeatureStatisticsClass:
                         self.array_count_dicts[3][three_consecutive_tags] = 1
                     else:
                         self.array_count_dicts[3][three_consecutive_tags] += 1
-
 
     def get_tag_couples_count_104(self, file_path):
         """
@@ -151,7 +150,6 @@ class FeatureStatisticsClass:
                     else:
                         self.array_count_dicts[5][ctag] += 1
 
-
     def get_prev_word_curr_tag_pair_count_106(self, file_path):
         """
             Extract out of text all prev word/tag pairs
@@ -188,6 +186,7 @@ class FeatureStatisticsClass:
                     else:
                         self.array_count_dicts[7][(nword, ctag)] += 1
 
+
 """### Indexing features 
 After getting feature statistics, each feature is given an index to represent it. We include only features that appear more times in text than the lower bound - 'threshold'
 """
@@ -207,14 +206,12 @@ class Feature2idClass:
         for i in range(0, 8):
             self.array_of_words_tags_dicts.append(OrderedDict())
 
-
-    def get_id_for_features_over_threshold(self, file_path):
+    def get_id_for_features_over_threshold(self, file_path, num_features):
         """
             Extract out of text all word/tag pairs
             :param file_path: full path of the file to read
                 return all word/tag pairs with index of appearance
         """
-        num_features = 8
         for i in range(0, num_features):
             with open(file_path) as f:
 
@@ -313,8 +310,6 @@ class Feature2idClass:
     # --- ADD YOURE CODE BELOW --- #
 
 
-
-
 """### Representing input data with features 
 After deciding which features to use, we can represent input tokens as sparse feature vectors. This way, a token is represented with a vec with a dimension D, where D is the total amount of features. \
 This is done at training step.
@@ -357,39 +352,39 @@ def represent_input_with_features(history, Feature2idClass, ctag_input = None, p
     words_tags_dict_106 = Feature2idClass.array_of_words_tags_dicts[6]
     words_tags_dict_107 = Feature2idClass.array_of_words_tags_dicts[7]
 
-    ## 100 ##
+    # 100 #
     if (cword, ctag) in words_tags_dict_100:
         features.append(words_tags_dict_100[(cword, ctag)])
 
-    ## 101 ##
+    # 101 #
     three_letter_suffix = cword[-3:]
     if (three_letter_suffix, ctag) in words_tags_dict_101:
         features.append(words_tags_dict_101[(three_letter_suffix, ctag)])
 
-    ## 102 ##
+    # 102 #
     three_letter_prefix = cword[0:3]
     if (three_letter_prefix, ctag) in words_tags_dict_102:
         features.append(words_tags_dict_102[(three_letter_prefix, ctag)])
 
-    ## 103 ##
+    # 103 #
     three_consecutive_tags = (pptag, ptag, ctag)
     if three_consecutive_tags in threesome_tags_dict_103:
         features.append(threesome_tags_dict_103[three_consecutive_tags])
 
-    ## 104 ##
+    # 104 #
     couple_consecutive_tags = (ptag, ctag)
     if couple_consecutive_tags in couple_tags_dict_104:
         features.append(couple_tags_dict_104[couple_consecutive_tags])
 
-    ## 105 ##
+    # 105 #
     if ctag in tags_dict_105:
         features.append(tags_dict_105[ctag])
 
-    ## 106 ##
+    # 106 #
         if (pword, ctag) in words_tags_dict_106:
             features.append(words_tags_dict_106[(pword, ctag)])
 
-    ## 107 ##
+    # 107 #
         if (nword, ctag) in words_tags_dict_107:
             features.append(words_tags_dict_107[(nword, ctag)])
 
@@ -439,16 +434,17 @@ def generate_table_of_history_tags_features_for_test(my_feature2id_class, histor
         for pptag_index, pptag in enumerate(tags_list):
             for ptag_index, ptag in enumerate(tags_list):
                 for ctag_index, ctag in enumerate(tags_list):
-                    curr_feature_vector = represent_input_with_features(curr_history_quadruple, my_feature2id_class,pptag,ptag,ctag)
+                    curr_feature_vector = represent_input_with_features(curr_history_quadruple, my_feature2id_class, pptag, ptag, ctag)
                     history_tags_features_table[history_index, pptag_index, ptag_index, ctag_index] = curr_feature_vector
 
 
 def main():
     start_time_section_1 = time.time()
-
+    num_features = 8
     num_occurrences_threshold = 5
     file_path = os.path.join("data", "train2.wtag")
 
+    # generate statistic class and count all features #
     my_feature_statistics_class = FeatureStatisticsClass()
     my_feature_statistics_class.get_word_tag_pair_count_100(file_path)
     my_feature_statistics_class.get_word_tag_pair_count_101(file_path)
@@ -459,22 +455,25 @@ def main():
     my_feature_statistics_class.get_prev_word_curr_tag_pair_count_106(file_path)
     my_feature_statistics_class.get_next_word_curr_tag_pair_count_107(file_path)
 
+    # generate indices for all features that appear above a specified threshold #
     my_feature2id_class = Feature2idClass(my_feature_statistics_class, num_occurrences_threshold)
-    my_feature2id_class.get_id_for_features_over_threshold(file_path)
+    my_feature2id_class.get_id_for_features_over_threshold(file_path, num_features)
 
+    # generate a history quadruple table #
     history_quadruple_table = history_quadruples_to_indices(file_path)
+
+    # generate a list of all possible tags and make it indexed according to appearance order in the set of tags #
     all_word_tag_list = my_feature_statistics_class.array_count_dicts[0].keys()
-    correct_tags_ordered = [x[1] for x in all_word_tag_list]
-    tags_list = set(correct_tags_ordered)  # unique appearance of all possible tags
+    correct_tags_ordered = [x[1] for x in all_word_tag_list]  # all tags in order of appearance in text
+    tags_list = list(set(correct_tags_ordered))  # unique appearance of all possible tags
+    correct_tags_ordered_indexed = [tags_list.index(x) for x in correct_tags_ordered]  # all indices of tags (in the unique tag set) in order of appearance in text
 
+    # generate a table with entries: (history_quadruple, ctag), that contains a matching feature #
     history_tags_features_table_for_training = generate_table_of_history_tags_features_for_training(my_feature2id_class, history_quadruple_table, tags_list)
-
-
 
     end_time_section_1 = time.time()
     total_time = end_time_section_1 - start_time_section_1
     print(f'total time for section 1 is: {total_time} seconds')
-
 
     pass
 
